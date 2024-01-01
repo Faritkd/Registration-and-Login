@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html lang="en">
+{#<link rel="stylesheet" href="css/main.css">#}
+<head>
+    <meta charset="UTF-8">
+    <title> {% block title %} {% endblock %}</title>
+    <h3><a href="{% url 'home' %}">Home</a>|<a href="{% url 'login' %}">Login</a>|<a href="{% url 'register' %}">Signup</a></h3>
+</head>
+<body>
+{% block content %}
+{% endblock %}
+</body>
+</html>
