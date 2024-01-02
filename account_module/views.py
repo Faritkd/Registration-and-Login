@@ -7,7 +7,7 @@ from django.shortcuts import render, redirect, reverse
 from django.template.loader import render_to_string
 from django.utils.html import strip_tags
 from django.views import View
-from .forms import RegisterForm, LoginForm
+from .forms import RegisterForm, LoginForm, ForgetPasswordForm, ChangePasswordForm
 from .models import User
 from django.http import HttpResponse
 from django.contrib import messages
@@ -97,3 +97,55 @@ class LoginView(View):
         context = {"login_form": login_form}
         return render(request, "account_module/login.html", context)
 
+
+class ForgetPasswordView(View):
+    def get(self, request):
+        forget_password_form = ForgetPasswordForm()
+        context = {"forget_password_form": forget_password_form}
+        return render(request, "account_module/forget_password.html", context)
+
+    def post(self, request):
+        forget_password_form = ForgetPasswordForm(request.POST)
+        if forget_password_form.is_valid():
+            user_email = forget_password_form.cleaned_data.get("email")
+            user: User = User.objects.filter(email=user_email).first()
+            if user is not None:
+                user.email_active_code = generate_activation_code()
+                user.save()
+                send_verification_code("Change Password",
+                                       user_email,
+                                       {"email_active_code": user.email_active_code},
+                                       "account_module/change_pass_code.html",
+                                       )
+
+                return HttpResponse("Verification code has sent to your email.")
+            else:
+                messages.error(request, "User not found.")
+        context = {"forget_password_form": forget_password_form}
+        return render(request, "account_module/forget_password.html", context)
+
+
+class ChangePasswordView(View):
+    def get(self, request, email_active_code):
+        user = User.objects.filter(email_active_code=email_active_code).first()
+        if user is None:
+            return redirect(reverse("login"))
+        change_password_form = ChangePasswordForm()
+        context = {"change_password_form": change_password_form}
+        return render(request, "account_module/change_password.html", context)
+
+    def post(self, request, email_active_code):
+        change_password_form = ChangePasswordForm(request.POST)
+        user = User.objects.filter(email_active_code=email_active_code).first()
+        if change_password_form.is_valid():
+            new_password = change_password_form.cleaned_data.get("password")
+            new_confirm_password = change_password_form.cleaned_data.get("confirm_password")
+            if new_password == new_confirm_password:
+                user.set_password(new_password)
+                user.is_active = True
+                user.email_active_code = generate_activation_code()
+                user.save()
+                return redirect(reverse("login"))
+
+        context = {"change_password_form": change_password_form}
+        return render(request, "account_module/change_password.html", context)
