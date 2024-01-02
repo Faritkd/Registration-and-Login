@@ -31,12 +31,12 @@ def send_verification_code(subject, to, context, template_name):
     send_mail(subject, plain_message, from_email, [to], html_message=html_message)
 
 
-def activate_account(request, email_active_code):
-    user: User = User.objects.filter(email_active_code=email_active_code).first()
+def activate_account(request, verification_code):
+    user: User = User.objects.filter(verification_code=verification_code).first()
     if user is not None:
         if not user.is_active:
             user.is_active = True
-            user.email_active_code = generate_activation_code()
+            user.verification_code = generate_activation_code()
             user.save()
             return redirect(reverse("login"))
         messages.error(request, "your account has already been activated. so fuck off.💩")
@@ -60,12 +60,12 @@ class RegisterView(View):
             else:
                 new_user = registration_form.save(commit=False)
                 new_user.is_active = False
-                new_user.email_active_code = generate_activation_code()
+                new_user.verification_code = generate_activation_code()
                 new_user.save()
                 send_verification_code(
                     "account activation",
                     new_user.email,
-                    {"email_active_code": new_user.email_active_code},
+                    {"verification_code": new_user.verification_code},
                     "account_module/activation.html",
                 )
                 messages.success(request, "please check your account for verification code.")
@@ -110,11 +110,11 @@ class ForgetPasswordView(View):
             user_email = forget_password_form.cleaned_data.get("email")
             user: User = User.objects.filter(email=user_email).first()
             if user is not None:
-                user.email_active_code = generate_activation_code()
+                user.verification_code = generate_activation_code()
                 user.save()
                 send_verification_code("Change Password",
                                        user_email,
-                                       {"email_active_code": user.email_active_code},
+                                       {"verification_code": user.verification_code},
                                        "account_module/change_pass_code.html",
                                        )
 
@@ -126,24 +126,24 @@ class ForgetPasswordView(View):
 
 
 class ChangePasswordView(View):
-    def get(self, request, email_active_code):
-        user = User.objects.filter(email_active_code=email_active_code).first()
+    def get(self, request, verification_code):
+        user = User.objects.filter(verification_code=verification_code).first()
         if user is None:
             return redirect(reverse("login"))
         change_password_form = ChangePasswordForm()
         context = {"change_password_form": change_password_form}
         return render(request, "account_module/change_password.html", context)
 
-    def post(self, request, email_active_code):
+    def post(self, request, verification_code):
         change_password_form = ChangePasswordForm(request.POST)
-        user = User.objects.filter(email_active_code=email_active_code).first()
+        user = User.objects.filter(verification_code=verification_code).first()
         if change_password_form.is_valid():
             new_password = change_password_form.cleaned_data.get("password")
             new_confirm_password = change_password_form.cleaned_data.get("confirm_password")
             if new_password == new_confirm_password:
                 user.set_password(new_password)
                 user.is_active = True
-                user.email_active_code = generate_activation_code()
+                user.verification_code = generate_activation_code()
                 user.save()
                 return redirect(reverse("login"))
 

@@ -9,7 +9,7 @@ class User(AbstractUser):
     last_name = models.CharField(max_length=150)
     username = models.CharField(max_length=50, unique=True)
     email = models.EmailField()
-    email_active_code = models.CharField(max_length=100)
+    verification_code = models.CharField(max_length=100)
     is_active = models.BooleanField(default=False)
 
     def __str__(self):
