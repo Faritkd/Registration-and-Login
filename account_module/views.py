@@ -97,9 +97,9 @@ class LoginView(View):
                     login(request, user)
                     return HttpResponse(f"Hello {user}. You are logged in!")
                 else:
-                    return HttpResponse(f'Dear {user}, please activate your account.')
+                    messages.error(request, 'Dear {user}, please activate your account.')
             else:
-                login_form.add_error("username", "Invalid username or password")
+                messages.error(request, "Invalid username or password")
         context = {"login_form": login_form}
         return render(request, "account_module/login.html", context)
 
@@ -157,6 +157,7 @@ class ResetPasswordView(View):
                 user.verification_code = generate_activation_code()
                 user.save()
                 return redirect(reverse("login"))
-
+            else:
+                messages.error(request, "Password does not match with confirm-password.💩")
         context = {"change_password_form": change_password_form}
         return render(request, "account_module/reset_password.html", context)
